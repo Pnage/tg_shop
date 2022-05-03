@@ -294,3 +294,29 @@ ID товаров можно узнать во вкладке \"Каталог\"
             kb = ReplyKeyboardMarkup(resize_keyboard=True)
             kb.add(kb_button1, kb_button3, kb_button4, kb_button2)
             await message.answer(f'Общая стоимость товаров в корзине: {total_price}', reply_markup=kb)
+    #Если 'купить' в тексте (отправляет всем администраторам сообщение с заказом пользователя)
+    elif 'купить' in message.text.lower():
+        user_id = message.chat.id
+        sql_query = "SELECT id FROM admins"
+        sql.execute(sql_query)
+        admins = sql.fetchall()
+        admins = [i[0] for i in admins]
+        sql_query = "SELECT products FROM carts WHERE id = ?"
+        arguments = (user_id,)
+        sql.execute(sql_query, arguments)
+        content = sql.fetchone()[0].split(',')
+        total_price = 0
+        for i in content:
+            user_id = message.chat.id
+            info = get_product(i)
+            total_price += int(info[3])
+        products = str(content).replace("'",'')
+        username = message.from_user.username
+        msg = f"""Пользователь {user_id} (@{username}) заказал следующие товары:
+
+{products}
+
+На сумму {str(total_price)} рублей"""
+        for i in admins:
+            await bot.send_message(i, msg)
+        await message.answer(f'Ваш запрос отправлен менеджеру')
