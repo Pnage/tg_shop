@@ -127,7 +127,6 @@ def insert_products(Id, name, desc, category, price, filename):
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
 
-
 # Хэндлер, отслеживающий получение сообщения с фото (создание, редактирование товара)
 @dp.message_handler(content_types=['photo'])
 async def handle_docs_photo(message):
@@ -162,3 +161,32 @@ async def handle_docs_photo(message):
                 await message.photo[-1].download('img_for_read.jpg')
                 update_product(args[0], args)
                 await message.answer('Товар обновлен')
+
+    # Хэндлер, отслеживающий обычные текстовые сообщения
+    @dp.message_handler()
+    async def cmd_test1(message: types.Message):
+        # Делаем переменную категорий товаров глобальной, чтобы перезаписывать её в дальнейшем
+        global categorys
+        # print(message.text)
+        # LOREMIPSUMLOREMIPSUMLOREMIPSUM
+
+        # Если '/start' в тексте (первая команда)
+        if '/start' in message.text or 'в меню' in message.text.lower() or 'в пользовательское меню' in message.text.lower():
+            kb_button1 = KeyboardButton('Каталог')
+            kb_button2 = KeyboardButton('Корзина')
+            kb = ReplyKeyboardMarkup(resize_keyboard=True)
+            kb.add(kb_button1, kb_button2)
+            text = 'Здравствуйте! Куда вам нужно?'
+            await message.answer(text, reply_markup=kb)
+        # Если '/id' в тексте (выдача инфы о товаре по ID)
+        elif '/id ' in message.text:
+            user_id = message.chat.id
+            Id = str(message.text.replace('/id ', ''))
+            info = get_product(Id)
+            photo = open('img_to_write.jpg', 'rb').read()
+            text = f"""{info[0]}
+    {info[1]}
+    Категория: {info[2]}
+    {info[3]} рублей
+    ID: {Id}"""
+            await bot.send_photo(chat_id=user_id, photo=photo, caption=text)
