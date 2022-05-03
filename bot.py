@@ -61,3 +61,34 @@ def admin_check(user_id):
         return False
     else:
         return True
+
+#Конвертация файла в байты для дальнейшей записи в БД
+def convert_to_binary_data(filename):
+    # Преобразование данных в двоичный формат
+    with open(filename, 'rb') as file:
+        blob_data = file.read()
+    return blob_data
+
+#Временная запись в файл картинки из БД по ID, для отправки пользователю
+def get_image(Id):
+    sql.execute(f"SELECT photo FROM products WHERE id = '{Id}'")
+    content = sql.fetchone()
+    if  content is None:
+        print(f'Нет товара с ID {Id}')
+    else:
+        with open('img_to_write.jpg','wb') as file:
+            file.write(content[0])
+
+#Получение всей инфы о товаре из БД по одному ID
+def get_product(Id):
+    sql.execute(f"SELECT * FROM products WHERE id = '{Id}'")
+    content = sql.fetchone()
+    if content is None:
+        print(f'Нету такого товара ID: {Id}')
+    else:
+        name = content[1]
+        description = content[2]
+        price = content[3]
+        category = content[4]
+        get_image(Id)
+        return [name, description, price, category]
