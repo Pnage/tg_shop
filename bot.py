@@ -489,3 +489,48 @@ ID: {i[0]}"""
                 db.commit()
                 text = 'Администратор разжалован'
                 await message.answer(text)
+    #Если '/admin_list' в тексте (выдаёт администратору список всех действующих администраторов)
+    elif '/admin_list' in message.text.lower() and admin_check(message.chat.id):
+        sql_query = "SELECT * FROM admins"
+        sql.execute(sql_query)
+        admins = sql.fetchall()
+        text = ''
+        for i in admins:
+            text += f'@{i[1]} - {i[0]}\n'
+        await message.answer(text)
+    #Если ни одно из прошлых условий не удовлетворено и в сообщении
+    #нет символа "/", то бот считает что было прислано название
+    #категории товаров, поэтому отправляет все товары из этой категории
+    else:
+        text = message.text.lower()
+        if not '/' in text:
+            text = message.text.lower()
+            user_id = message.chat.id
+            sql_query = "SELECT category FROM products"
+            sql.execute(sql_query)
+            content = list(reversed(sql.fetchall()))
+            categorys = []
+            for i in content:
+                if str(i[0]) == 'None':
+                    continue
+                category = i[0].lower()
+                if not str(category) in categorys:
+                    categorys.append(f'{category}')
+            categorys = [i.lower() for i in categorys]
+            if text in categorys:
+                category = text
+                sql_query = "SELECT * FROM products WHERE category = ?"
+                arguments = (category,)
+                sql.execute(sql_query, arguments)
+                content = list(reversed(sql.fetchall()))
+                for i in content:
+                    product = i
+                    get_image(product[0])
+                    with open('img_to_write.jpg','rb') as photo:
+                        await bot.send_photo(chat_id=user_id, photo=photo, caption=f"{product[1]}\n{product[2]}\nКатегория: {product[3]}\n{product[4]} рублей\nID: {product[0]}")
+            else:
+                await message.answer('К сожалению такой категории товаров у нас нет.')
+
+    #Запуск вечной обработки хэндлеров
+if __name__ == "__main__":
+        executor.start_polling(dp, skip_updates=True)
