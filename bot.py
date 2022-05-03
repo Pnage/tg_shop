@@ -320,3 +320,33 @@ ID товаров можно узнать во вкладке \"Каталог\"
         for i in admins:
             await bot.send_message(i, msg)
         await message.answer(f'Ваш запрос отправлен менеджеру')
+    #Если '/clear_cart' в тексте (полное удаление всех товаров из корзины пользователя)
+    elif '/clear_cart' in message.text.lower():
+        user_id = message.chat.id
+        sql_query = "DELETE FROM carts WHERE id = ?"
+        arguments = (user_id,)
+        sql.execute(sql_query, arguments)
+        db.commit()
+        await message.answer(f'Ваша корзина полностью очищена.')
+    #Если '/admin' в тексте (вход в режим администратора)
+    elif f'/admin {admin_password} ' in message.text:
+
+        kb_button1 = KeyboardButton('Добавить товар')
+        kb_button2 = KeyboardButton('Редактировать товар')
+        kb_button3 = KeyboardButton('Удалить товар')
+        kb_button4 = KeyboardButton('В пользовательское меню')
+        kb = ReplyKeyboardMarkup(resize_keyboard=True)
+        kb.add(kb_button1, kb_button2, kb_button3, kb_button4)
+        user_id = message.chat.id
+        username = message.from_user.username
+        sql_query = "SELECT id FROM admins WHERE id = ?"
+        arguments = (user_id,)
+        sql.execute(sql_query, arguments)
+        if sql.fetchone() is None:
+            sql_query = "INSERT INTO admins VALUES (?, ?)"
+            arguments = (user_id, username)
+            sql.execute(sql_query,arguments)
+            db.commit()
+            await message.answer('Здравствуйте! Режим администратора включен. Выберите действие:', reply_markup = kb)
+        else:
+            await message.answer('Здравствуйте! Режим администратора уже включен. Выберите действие:', reply_markup = kb)
