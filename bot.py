@@ -454,3 +454,38 @@ ID товаров можно узнать во вкладке \"Каталог\"
 {i[4]} рублей
 ID: {i[0]}"""
                 await bot.send_photo(chat_id=user_id, photo=photo, caption=text)
+    # Если '/deadmin' в тексте (удаление пользователя из группы администраторов)
+    elif '/deadmin ' in message.text.lower() and admin_check(message.chat.id):
+        text = message.text.lower()
+        user_id = message.chat.id
+
+        if 'me' in text.split(' '):
+            args = text.replace('/deadmin ', '').split(' ')
+
+            if args[1] == admin_password:
+                sql_query = "DELETE FROM admins WHERE id = ?"
+                arguments = (user_id,)
+                sql.execute(sql_query, arguments)
+                db.commit()
+                text = 'Вы вышли из режима администратора'
+                await message.answer(text)
+
+        elif 'all' in text.split(' '):
+            args = text.replace('/deadmin ', '').split(' ')
+
+            if args[1] == admin_password:
+                sql_query = "DELETE FROM admins"
+                sql.execute(sql_query)
+                db.commit()
+                text = 'Все администраторы разжалованы'
+                await message.answer(text)
+        else:
+            args = text.replace('/deadmin ', '').split(' ')
+
+            if args[1] == admin_password:
+                sql_query = "DELETE FROM admins WHERE id = ?"
+                arguments = (args[0],)
+                sql.execute(sql_query, arguments)
+                db.commit()
+                text = 'Администратор разжалован'
+                await message.answer(text)
