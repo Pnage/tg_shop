@@ -2,23 +2,23 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 import sqlite3
 
-settings = open('settings.txt','r').readline().split(',')
+settings = open('settings.txt', 'r').readline().split(',')
 
-#Пароль администратора (используется при добавлении пользователя в админы командой /admin [пароль])
+# Пароль администратора (используется при добавлении пользователя в админы командой /admin [пароль])
 admin_password = str(settings[0])
 print(admin_password)
 
-#Создание базы данных, курсора
+# Создание базы данных, курсора
 db = sqlite3.connect('server.db')
 sql = db.cursor()
 
-#Создание таблицы корзин пользователей
+# Создание таблицы корзин пользователей
 sql.execute("""CREATE TABLE IF NOT EXISTS carts (
     id INT,
     products TEXT
 )""")
 
-#Создание таблицы с товарами
+# Создание таблицы с товарами
 sql.execute("""CREATE TABLE IF NOT EXISTS products (
     id INT,
     name TEXT,
@@ -28,21 +28,20 @@ sql.execute("""CREATE TABLE IF NOT EXISTS products (
     photo BLOB
 )""")
 
-#Создание таблицы администраторов
+# Создание таблицы администраторов
 sql.execute("""CREATE TABLE IF NOT EXISTS admins (id TEXT, username TEXT)""")
 
-
 if sql.execute(f"SELECT * FROM products WHERE id = '9999999999'").fetchone() is None:
-    sql.execute("INSERT INTO products VALUES (?,?,?,?,?,?)",(9999999999, None, None, None, None, None))
+    sql.execute("INSERT INTO products VALUES (?,?,?,?,?,?)", (9999999999, None, None, None, None, None))
 
-#Сохранение всех изменений в БД
+# Сохранение всех изменений в БД
 db.commit()
 
-#Настройка бота
+# Настройка бота
 bot = Bot(token=settings[1])
 dp = Dispatcher(bot)
 
-#Первое обновление категорий товаров
+# Первое обновление категорий товаров
 sql_query = "SELECT category FROM products"
 sql.execute(sql_query)
 content = sql.fetchall()
@@ -54,7 +53,8 @@ for i in content:
     if not str(category) in categorys:
         categorys.append(f'{category}')
 
-#Проверка пользователя на права администратора
+
+# Проверка пользователя на права администратора
 def admin_check(user_id):
     sql.execute(f"SELECT id FROM admins WHERE id = '{user_id}'")
     if sql.fetchone() is None:
@@ -62,24 +62,27 @@ def admin_check(user_id):
     else:
         return True
 
-#Конвертация файла в байты для дальнейшей записи в БД
+
+# Конвертация файла в байты для дальнейшей записи в БД
 def convert_to_binary_data(filename):
     # Преобразование данных в двоичный формат
     with open(filename, 'rb') as file:
         blob_data = file.read()
     return blob_data
 
-#Временная запись в файл картинки из БД по ID, для отправки пользователю
+
+# Временная запись в файл картинки из БД по ID, для отправки пользователю
 def get_image(Id):
     sql.execute(f"SELECT photo FROM products WHERE id = '{Id}'")
     content = sql.fetchone()
-    if  content is None:
+    if content is None:
         print(f'Нет товара с ID {Id}')
     else:
-        with open('img_to_write.jpg','wb') as file:
+        with open('img_to_write.jpg', 'wb') as file:
             file.write(content[0])
 
-#Получение всей инфы о товаре из БД по одному ID
+
+# Получение всей инфы о товаре из БД по одному ID
 def get_product(Id):
     sql.execute(f"SELECT * FROM products WHERE id = '{Id}'")
     content = sql.fetchone()
@@ -93,7 +96,8 @@ def get_product(Id):
         get_image(Id)
         return [name, description, price, category]
 
-#Обновление в БД записи товара при редактировании
+
+# Обновление в БД записи товара при редактировании
 def update_product(Id, info):
     sql.execute(f"SELECT * FROM products WHERE id = '{Id}'")
     content = sql.fetchone()
@@ -101,13 +105,16 @@ def update_product(Id, info):
         print(f'Нету такого товара ID: {Id}')
     else:
         new_photo = convert_to_binary_data('img_for_read.jpg')
-        sql.execute(f"UPDATE products SET name = ?, description = ?, category = ?, price = ?, photo = ? WHERE id = ?", (info[1],info[2],info[3].lower(),info[4],new_photo,Id))
+        sql.execute(f"UPDATE products SET name = ?, description = ?, category = ?, price = ?, photo = ? WHERE id = ?",
+                    (info[1], info[2], info[3].lower(), info[4], new_photo, Id))
         db.commit()
 
-#Удаление товара из БД по ID
+
+# Удаление товара из БД по ID
 def delete_product(Id):
     sql.execute(f"DELETE FROM products WHERE id = '{Id}'")
     db.commit()
+
 
 # Создание записи товара в БД
 def insert_products(Id, name, desc, category, price, filename):
@@ -126,6 +133,7 @@ def insert_products(Id, name, desc, category, price, filename):
 
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+
 
 # Хэндлер, отслеживающий получение сообщения с фото (создание, редактирование товара)
 @dp.message_handler(content_types=['photo'])
@@ -162,81 +170,127 @@ async def handle_docs_photo(message):
                 update_product(args[0], args)
                 await message.answer('Товар обновлен')
 
-    # Хэндлер, отслеживающий обычные текстовые сообщения
-    @dp.message_handler()
-    async def cmd_test1(message: types.Message):
-        # Делаем переменную категорий товаров глобальной, чтобы перезаписывать её в дальнейшем
-        global categorys
-        # print(message.text)
-        # LOREMIPSUMLOREMIPSUMLOREMIPSUM
 
-        # Если '/start' в тексте (первая команда)
-        if '/start' in message.text or 'в меню' in message.text.lower() or 'в пользовательское меню' in message.text.lower():
-            kb_button1 = KeyboardButton('Каталог')
-            kb_button2 = KeyboardButton('Корзина')
-            kb = ReplyKeyboardMarkup(resize_keyboard=True)
-            kb.add(kb_button1, kb_button2)
-            text = 'Здравствуйте! Куда вам нужно?'
-            await message.answer(text, reply_markup=kb)
-        # Если '/id' в тексте (выдача инфы о товаре по ID)
-        elif '/id ' in message.text:
-            user_id = message.chat.id
-            Id = str(message.text.replace('/id ', ''))
-            info = get_product(Id)
-            photo = open('img_to_write.jpg', 'rb').read()
-            text = f"""{info[0]}
-    {info[1]}
-    Категория: {info[2]}
-    {info[3]} рублей
-    ID: {Id}"""
-            await bot.send_photo(chat_id=user_id, photo=photo, caption=text)
+# Хэндлер, отслеживающий обычные текстовые сообщения
+@dp.message_handler()
+async def cmd_test1(message: types.Message):
+    # Делаем переменную категорий товаров глобальной, чтобы перезаписывать её в дальнейшем
+    global categorys
+    # print(message.text)
+    # LOREMIPSUMLOREMIPSUMLOREMIPSUM
+
+    # Если '/start' в тексте (первая команда)
+    if '/start' in message.text or 'в меню' in message.text.lower() or 'в пользовательское меню' in message.text.lower():
+        kb_button1 = KeyboardButton('Каталог')
+        kb_button2 = KeyboardButton('Корзина')
+        kb = ReplyKeyboardMarkup(resize_keyboard=True)
+        kb.add(kb_button1, kb_button2)
+        text = 'Здравствуйте! Куда вам нужно?'
+        await message.answer(text, reply_markup=kb)
+    # Если '/id' в тексте (выдача инфы о товаре по ID)
+    elif '/id ' in message.text:
+        user_id = message.chat.id
+        Id = str(message.text.replace('/id ', ''))
+        info = get_product(Id)
+        photo = open('img_to_write.jpg', 'rb').read()
+        text = f"""{info[0]}
+{info[1]}
+Категория: {info[2]}
+{info[3]} рублей
+ID: {Id}"""
+        await bot.send_photo(chat_id=user_id, photo=photo, caption=text)
 
     # Если '/delete' в тексте (удаление товара из БД)
     elif '/delete ' in message.text and admin_check(message.chat.id):
-    user_id = message.chat.id
-    Id = str(message.text.replace('/delete ', ''))
-    sql.execute(f"SELECT * FROM products WHERE id = '{Id}'")
-    content = sql.fetchone()
-    if content is None:
-        await message.answer(f'Товара с таким ID нет в базе. ID: {Id}')
-    else:
-        delete_product(Id)
-        await message.answer(f'Товар удален из базы данных. ID: {Id}')
+        user_id = message.chat.id
+        Id = str(message.text.replace('/delete ', ''))
+        sql.execute(f"SELECT * FROM products WHERE id = '{Id}'")
+        content = sql.fetchone()
+        if content is None:
+            await message.answer(f'Товара с таким ID нет в базе. ID: {Id}')
+        else:
+            delete_product(Id)
+            await message.answer(f'Товар удален из базы данных. ID: {Id}')
 
-# Если '/cart' в тексте (Добавление товара в корзину)
-elif '/cart ' in message.text.lower() and len(message.text.replace('/cart ', '')) == 10:
-try:
-    message.text = message.text.lower()
-    message.text = message.text.replace('/cart ', '')
-    int('1' + message.text)
-    user_id = message.chat.id
-    new_product = message.text
-    sql_query = "SELECT id FROM products"
-    sql.execute(sql_query)
-    content = sql.fetchall()
-    all_ids = [i[0] for i in content]
-    if int(new_product) in all_ids:
+    # Если '/cart' в тексте (Добавление товара в корзину)
+    elif '/cart ' in message.text.lower() and len(message.text.replace('/cart ', '')) == 10:
+        try:
+            message.text = message.text.lower()
+            message.text = message.text.replace('/cart ', '')
+            int('1' + message.text)
+            user_id = message.chat.id
+            new_product = message.text
+            sql_query = "SELECT id FROM products"
+            sql.execute(sql_query)
+            content = sql.fetchall()
+            all_ids = [i[0] for i in content]
+            if int(new_product) in all_ids:
+                sql_query = "SELECT products FROM carts WHERE id = ?"
+                arguments = (user_id,)
+                sql.execute(sql_query, arguments)
+                if sql.fetchone() is None:
+                    sql_query = "INSERT INTO carts VALUES(?,?)"
+                    arguments = (user_id, new_product)
+                    sql.execute(sql_query, arguments)
+                    db.commit()
+                    text = 'Товар успешно добавлен в корзину'
+                    await message.answer(text)
+                else:
+                    sql.execute(f"SELECT products FROM carts WHERE id = '{user_id}'")
+                    old_all_products = sql.fetchone()[0]
+                    if str(new_product) not in str(old_all_products):
+                        all_products = old_all_products + f',{new_product}'
+                        sql.execute(f"UPDATE carts SET products = '{all_products}' WHERE id = '{user_id}'")
+                        db.commit()
+                        await message.answer('Товар успешно добавлен в корзину')
+                    else:
+                        await message.answer('Вы уже добавили этот товар в корзину')
+            else:
+                await message.answer('Такого товара не существует')
+        except ValueError:
+            pass
+    #Если 'корзина' в тексте (по-очереди выдаёт все товары из корзины пользователя)
+    elif 'корзина' in message.text.lower():
+        user_id = message.chat.id
         sql_query = "SELECT products FROM carts WHERE id = ?"
         arguments = (user_id,)
         sql.execute(sql_query, arguments)
-        if sql.fetchone() is None:
-            sql_query = "INSERT INTO carts VALUES(?,?)"
-            arguments = (user_id, new_product)
-            sql.execute(sql_query, arguments)
-            db.commit()
-            text = 'Товар успешно добавлен в корзину'
+        products = sql.fetchone()
+        if products is None:
+            text = """Ваша корзина пуста.
+
+Чтобы добавить товар в корзину напишите:
+
+/cart [ID товара, который вы хотите добавить]
+
+ID товаров можно узнать во вкладке \"Каталог\""""
             await message.answer(text)
         else:
-            sql.execute(f"SELECT products FROM carts WHERE id = '{user_id}'")
-            old_all_products = sql.fetchone()[0]
-            if str(new_product) not in str(old_all_products):
-                all_products = old_all_products + f',{new_product}'
-                sql.execute(f"UPDATE carts SET products = '{all_products}' WHERE id = '{user_id}'")
-                db.commit()
-                await message.answer('Товар успешно добавлен в корзину')
-            else:
-                await message.answer('Вы уже добавили этот товар в корзину')
-    else:
-        await message.answer('Такого товара не существует')
-except ValueError:
-    pass
+            await message.answer('Товары в вашей корзине: ')
+            products = products[0].split(',')
+            total_price = 0
+            for i in products:
+                sql.execute(f"SELECT * FROM products WHERE id = '{i}'")
+                if sql.fetchone() is None:
+                    sql.execute(f"SELECT products FROM carts WHERE id = '{user_id}'")
+                    products = sql.fetchone()[0]
+                    product = i
+                    products = products.replace(f'{product},','').replace(f',{product}','').replace(f'{product},','').replace(product, '')
+                    if products == '':
+                        sql.execute(f"DELETE FROM carts WHERE id = '{user_id}'")
+                    sql.execute(f"UPDATE carts SET products = '{products}' WHERE id = '{user_id}'")
+                    db.commit()
+                    await message.answer('Один из товаров удалён из вашей корзины, т.к. его больше нет в базе данных')
+                else:
+                    user_id = message.chat.id
+                    info = get_product(i)
+                    total_price += int(info[3])
+                    with open('img_to_write.jpg','rb') as photo:
+                        await bot.send_photo(chat_id=user_id, photo=photo, caption=f'{info[0]}\n{info[1]}\nКатегория: {info[2]}\n{info[3]} рублей\nID: {i}')
+            kb_button1 = KeyboardButton('Купить')
+            kb_button3 = KeyboardButton('Удалить товар из корзины')
+            kb_button4 = KeyboardButton('Очистить')
+            kb_button2 = KeyboardButton('В меню')
+            kb = ReplyKeyboardMarkup(resize_keyboard=True)
+            kb.add(kb_button1, kb_button3, kb_button4, kb_button2)
+            await message.answer(f'Общая стоимость товаров в корзине: {total_price}', reply_markup=kb)
