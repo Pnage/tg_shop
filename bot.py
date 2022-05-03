@@ -92,6 +92,7 @@ def get_product(Id):
         category = content[4]
         get_image(Id)
         return [name, description, price, category]
+
 #Обновление в БД записи товара при редактировании
 def update_product(Id, info):
     sql.execute(f"SELECT * FROM products WHERE id = '{Id}'")
@@ -107,3 +108,57 @@ def update_product(Id, info):
 def delete_product(Id):
     sql.execute(f"DELETE FROM products WHERE id = '{Id}'")
     db.commit()
+
+# Создание записи товара в БД
+def insert_products(Id, name, desc, category, price, filename):
+    try:
+        sql_query = "SELECT * FROM products WHERE id = ?"
+        arguments = (Id,)
+        sql.execute(sql_query, arguments)
+        if sql.fetchone() is None:
+            sqlite_insert_query = "INSERT INTO products VALUES (?, ?, ?, ?, ?, ?)"
+            photo = convert_to_binary_data(filename)
+            data_tuple = (Id, name, desc, category, price, photo)
+            sql.execute(sqlite_insert_query, data_tuple)
+            db.commit()
+        else:
+            print('Товар с таким ID уже существует')
+
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+
+
+# Хэндлер, отслеживающий получение сообщения с фото (создание, редактирование товара)
+@dp.message_handler(content_types=['photo'])
+async def handle_docs_photo(message):
+    if '/add ' in message.caption and admin_check(message.chat.id):
+        user_id = message.chat.id
+        args = message.caption.replace('/add ', '').split('/')
+        text = 'Запрос отправлен на сервер'
+        await message.answer(text)
+        if admin_check(user_id) and len(args) == 4:
+            await message.photo[-1].download('img_for_read.jpg')
+            sql_query = "SELECT * FROM products"
+            sql.execute(sql_query)
+            all_id = sql.fetchall()
+            last_id = all_id[-1]
+            ident = str(10000000000 - int(len(all_id)) - 1)
+            insert_products(ident, args[0], args[1], args[2].lower(), args[3], 'img_for_read.jpg')
+            await message.answer('Товар добавлен')
+
+    elif '/update ' in message.caption and admin_check(message.chat.id):
+        user_id = message.chat.id
+        args = message.caption.replace('/update ', '').split('/')
+        Id = args[0]
+        await message.answer('Запрос на обновление отправлен на сервер')
+        if admin_check(user_id) and len(args) == 5:
+            sql_query = "SELECT * FROM products WHERE id = ?"
+            arguments = (Id,)
+            sql.execute(sql_query, arguments)
+            content = sql.fetchone()
+            if content is None:
+                await message.answer(f'Товара с таким ID нет в базе. ID: {Id}')
+            else:
+                await message.photo[-1].download('img_for_read.jpg')
+                update_product(args[0], args)
+                await message.answer('Товар обновлен')
