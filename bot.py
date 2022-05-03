@@ -431,3 +431,26 @@ ID товаров можно узнать во вкладке \"Каталог\"
         kb = ReplyKeyboardMarkup(resize_keyboard=True)
         kb.add(kb_button1, kb_button2, kb_button3)
         await message.answer('Выберите действие', reply_markup=kb)
+    # Если 'последние товары' в тексте (выдаёт пользователю 20 последних товаров из БД)
+    elif 'последние товары' in message.text.lower():
+        sql_query = "SELECT * FROM products"
+        sql.execute(sql_query)
+        content = list(reversed(sql.fetchall()))[0:22]
+
+        if str(content[0][0]) == '9999999999':
+            text = 'Нет доступных товаров'
+            await message.answer(text)
+        user_id = message.chat.id
+
+        for i in content:
+
+            if str(i[0]) == '9999999999':
+                continue
+            get_image(i[0])
+            with open('img_to_write.jpg', 'rb') as photo:
+                text = f"""{i[1]}
+{i[2]}
+Категория: {i[3]}
+{i[4]} рублей
+ID: {i[0]}"""
+                await bot.send_photo(chat_id=user_id, photo=photo, caption=text)
