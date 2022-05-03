@@ -398,3 +398,36 @@ ID товаров можно узнать во вкладке \"Каталог\"
             sql.execute(f"UPDATE carts SET products = '{products}' WHERE id = '{user_id}'")
             db.commit()
             await message.answer(f'Товар удален из корзины. ID: {product}')
+    # Если 'категории' в тексте (сначала обновляет, а затем выдаёт все имеющиеся категории товаров пользователю)
+    elif 'категории' in message.text.lower():
+        sql_query = "SELECT category FROM products"
+        sql.execute(sql_query)
+        content = sql.fetchall()
+        categorys = []
+
+        for i in content:
+
+            if str(i[0]) == 'None':
+                continue
+            category = i[0].lower()
+
+            if not str(category) in categorys:
+                categorys.append(f'{category}')
+        text_cat = ''
+
+        for i in categorys:
+            text_cat += f'{i}\n'
+
+        if text_cat == '':
+            text_cat = 'Нет доступных товаров\n'
+        await message.answer(
+            f'Категории:\n{text_cat}\nЧтобы просмотреть товары из категории, просто отправьте боту название этой категории')
+
+        # Если 'каталог' в тексте (переносит пользователя в меню каталога)
+    elif 'каталог' in message.text.lower():
+        kb_button1 = KeyboardButton('Категории')
+        kb_button3 = KeyboardButton('В меню')
+        kb_button2 = KeyboardButton('Последние товары')
+        kb = ReplyKeyboardMarkup(resize_keyboard=True)
+        kb.add(kb_button1, kb_button2, kb_button3)
+        await message.answer('Выберите действие', reply_markup=kb)
