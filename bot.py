@@ -92,3 +92,18 @@ def get_product(Id):
         category = content[4]
         get_image(Id)
         return [name, description, price, category]
+#Обновление в БД записи товара при редактировании
+def update_product(Id, info):
+    sql.execute(f"SELECT * FROM products WHERE id = '{Id}'")
+    content = sql.fetchone()
+    if content is None:
+        print(f'Нету такого товара ID: {Id}')
+    else:
+        new_photo = convert_to_binary_data('img_for_read.jpg')
+        sql.execute(f"UPDATE products SET name = ?, description = ?, category = ?, price = ?, photo = ? WHERE id = ?", (info[1],info[2],info[3].lower(),info[4],new_photo,Id))
+        db.commit()
+
+#Удаление товара из БД по ID
+def delete_product(Id):
+    sql.execute(f"DELETE FROM products WHERE id = '{Id}'")
+    db.commit()
