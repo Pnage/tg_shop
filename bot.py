@@ -374,3 +374,27 @@ ID товаров можно узнать во вкладке \"Каталог\"
         text = 'Используйте команду:\n\n/delete [ID товара, который вы хотите удалить]'
         if admin_check(user_id):
             await message.answer(text)
+    # Если 'Удалить товар из корзины' в тексте (помощь при удалении пользователем товара из корзины)
+    elif 'удалить товар из корзины' in message.text.lower():
+        text = 'Используйте команду (без квадратных скобок):\n\n/del [ID товара, который вы хотите удалить из корзины]'
+        await message.answer(text)
+
+        # Если '/del' в тексте (удаление пользователем товара из корзины)
+    elif '/del ' in message.text.lower():
+        user_id = message.chat.id
+        sql_query = "SELECT products FROM carts WHERE id = ?"
+        arguments = (user_id,)
+        sql.execute(sql_query, arguments)
+        products = sql.fetchone()
+        products = products[0]
+        product = message.text.lower().replace('/del ', '')
+        if not str(product) in str(products):
+            await message.answer(f'Товара с таким ID нет у вас в корзине. ID: {product}')
+        else:
+            products = products.replace(f'{product},', '').replace(f',{product}', '').replace(f'{product},',
+                                                                                              '').replace(product, '')
+            if products == '':
+                sql.execute(f"DELETE FROM carts WHERE id = '{user_id}'")
+            sql.execute(f"UPDATE carts SET products = '{products}' WHERE id = '{user_id}'")
+            db.commit()
+            await message.answer(f'Товар удален из корзины. ID: {product}')
