@@ -190,3 +190,53 @@ async def handle_docs_photo(message):
     {info[3]} рублей
     ID: {Id}"""
             await bot.send_photo(chat_id=user_id, photo=photo, caption=text)
+
+    # Если '/delete' в тексте (удаление товара из БД)
+    elif '/delete ' in message.text and admin_check(message.chat.id):
+    user_id = message.chat.id
+    Id = str(message.text.replace('/delete ', ''))
+    sql.execute(f"SELECT * FROM products WHERE id = '{Id}'")
+    content = sql.fetchone()
+    if content is None:
+        await message.answer(f'Товара с таким ID нет в базе. ID: {Id}')
+    else:
+        delete_product(Id)
+        await message.answer(f'Товар удален из базы данных. ID: {Id}')
+
+# Если '/cart' в тексте (Добавление товара в корзину)
+elif '/cart ' in message.text.lower() and len(message.text.replace('/cart ', '')) == 10:
+try:
+    message.text = message.text.lower()
+    message.text = message.text.replace('/cart ', '')
+    int('1' + message.text)
+    user_id = message.chat.id
+    new_product = message.text
+    sql_query = "SELECT id FROM products"
+    sql.execute(sql_query)
+    content = sql.fetchall()
+    all_ids = [i[0] for i in content]
+    if int(new_product) in all_ids:
+        sql_query = "SELECT products FROM carts WHERE id = ?"
+        arguments = (user_id,)
+        sql.execute(sql_query, arguments)
+        if sql.fetchone() is None:
+            sql_query = "INSERT INTO carts VALUES(?,?)"
+            arguments = (user_id, new_product)
+            sql.execute(sql_query, arguments)
+            db.commit()
+            text = 'Товар успешно добавлен в корзину'
+            await message.answer(text)
+        else:
+            sql.execute(f"SELECT products FROM carts WHERE id = '{user_id}'")
+            old_all_products = sql.fetchone()[0]
+            if str(new_product) not in str(old_all_products):
+                all_products = old_all_products + f',{new_product}'
+                sql.execute(f"UPDATE carts SET products = '{all_products}' WHERE id = '{user_id}'")
+                db.commit()
+                await message.answer('Товар успешно добавлен в корзину')
+            else:
+                await message.answer('Вы уже добавили этот товар в корзину')
+    else:
+        await message.answer('Такого товара не существует')
+except ValueError:
+    pass
