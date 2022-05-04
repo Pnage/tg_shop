@@ -1,2 +1,1 @@
-123456,5235525282:AAGKdJy0a6g8R_wb0NxD5U3bTPEgYlCI5oo
-#пароль от режима администратора,токен бота
+qwerty,5235525282:AAGKdJy0a6g8R_wb0NxD5U3bTPEgYlCI5oo
