@@ -326,7 +326,7 @@ ID товаров можно узнать во вкладке \"Каталог\"
         db.commit()
         await message.answer(f'Ваша корзина полностью очищена.')
     #Если '/admin' в тексте (вход в режим администратора)
-    elif f'/admin {admin_password} ' in message.text:
+    elif f'/admin {admin_password}' in message.text:
 
         kb_button1 = KeyboardButton('Добавить товар')
         kb_button2 = KeyboardButton('Редактировать товар')
